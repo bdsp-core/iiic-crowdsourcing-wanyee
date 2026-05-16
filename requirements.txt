@@ -7,3 +7,4 @@ seaborn>=0.13
 tqdm>=4.65
 openpyxl>=3.1       # for reading labels_experts30.xlsx
 pycountry>=22.0     # Supp S1: locale -> country name
+h5py>=3.8           # only needed to (un)bundle iiic_contest_eeg.h5

@@ -88,6 +88,48 @@ python scripts/supp_s4_irr_study_experts.py
 Outputs land in `figures/` as PNG + PDF, accompanied by a `*.csv` of the
 numeric values backing each plot for spot-checking.
 
+## Bundling the EEG signals into HDF5
+
+The raw EEG signals + 10-minute spectrograms are stored as one .mat file per
+EEG segment (~2 MB each × ~10,704 segments ≈ 20 GB). For distribution we
+bundle them into a single compressed HDF5 archive,
+`iiic_contest_eeg.h5` (~12 GB), with random access by segment id:
+
+```bash
+python scripts/bundle_eeg_h5.py \
+  --mat-dir /path/to/ImageCode_JJ/Data \
+  --out data/iiic_contest_eeg.h5 \
+  --annotations data/test_df4.csv \
+  --experts30 data/labels_experts30.xlsx
+```
+
+The resulting file has this layout:
+
+```
+iiic_contest_eeg.h5
+├── /segments/<segment_id>/
+│   ├── data_50sec        (21, 10000) float32   ← downcast from float64; max abs error ~1e-4
+│   ├── spec_LL           (100, 300)  float32
+│   ├── spec_RL           (100, 300)  float32
+│   ├── spec_LP           (100, 300)  float32
+│   └── spec_RP           (100, 300)  float32
+│   attrs: gold_standard_label, contest_image_url, patient_id,
+│          gold_votes_{other, seizure, lpd, gpd, lrda, grda}
+├── /index/segment_ids    (N,) str
+├── /index/expert_ids     (30,) str
+└── attrs: sampling_rate_hz=200, channel_names_21, srpp_labels, description
+```
+
+Round-trip is verified against the source .mat files (max abs error
+~1e-8 relative). To pull a single segment as a numpy array:
+
+```python
+import h5py
+with h5py.File("data/iiic_contest_eeg.h5") as h:
+    eeg = h["segments/abn10329_20120330_100857_1957/data_50sec"][:]
+    label = h["segments/abn10329_20120330_100857_1957"].attrs["gold_standard_label"]
+```
+
 ## Reproducing the upstream pipeline (optional)
 
 If you want to rebuild `test_df4.csv` from the raw Centaur Labs exports
