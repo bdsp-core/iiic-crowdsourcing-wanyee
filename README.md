@@ -88,6 +88,41 @@ python scripts/supp_s4_irr_study_experts.py
 Outputs land in `figures/` as PNG + PDF, accompanied by a `*.csv` of the
 numeric values backing each plot for spot-checking.
 
+## Regenerating the contest images
+
+Figure 1 of the paper shows the standardised question format every contest
+participant saw: a 10 s EEG epoch in longitudinal-bipolar montage paired
+with four 10-minute regional-average spectrograms (LL, RL, LP, RP). Each
+image was rendered from one of Jin Jing's per-segment `.mat` files.
+
+The original MATLAB renderer (`scripts/contest_image_gen/main_getImage.m`)
+is preserved for reference. A Python port that produces equivalent images
+without requiring a MATLAB license lives at
+`scripts/contest_image_gen/make_contest_image.py`:
+
+```bash
+# From a single .mat file
+python scripts/contest_image_gen/make_contest_image.py \
+  --segment-id pat0002_20161004_141027_5167 \
+  --mat-dir /path/to/ImageCode_JJ/Data \
+  --out figures/contest_image_pat0002.png
+
+# Or directly from the bundled HDF5
+python scripts/contest_image_gen/make_contest_image.py \
+  --segment-id pat0002_20161004_141027_5167 \
+  --h5 data/iiic_contest_eeg.h5 \
+  --out figures/contest_image_pat0002.png
+```
+
+Sample output (segment `pat0002_20161004_141027_5167`):
+
+![Sample contest image](docs/sample_outputs/contest_image_pat0002.png)
+
+The Python port applies the same 0.5–40 Hz bandpass + 60 Hz notch as the
+MATLAB code, builds the 18-derivation longitudinal-bipolar montage in the
+identical channel order, and uses the same `jet` colormap with
+`vmin=-10 dB`, `vmax=25 dB` color limits for the spectrograms.
+
 ## Bundling the EEG signals into HDF5
 
 The raw EEG signals + 10-minute spectrograms are stored as one .mat file per
