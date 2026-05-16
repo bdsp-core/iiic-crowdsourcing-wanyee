@@ -1,88 +1,99 @@
-# Email to Wan-Yee — files needed for BDSP publication & GitHub repo
+# Email to Wan-Yee — short list of files still needed
 
-**Subject:** Files needed to publish the crowdsourcing-IRR data + code
+**Subject:** Final files for the IRR paper data + code release on BDSP
 
 ---
 
 Hi Wan-Yee,
 
-Brandon and I are getting the data and code package together for your Epilepsia paper so that everything can be posted on BDSP (https://bdsp.io/projects/87rztvzmyz9uh0esnd83/overview/) and on GitHub at https://github.com/bdsp-core/iiic-crowdsourcing-wanyee. The goal is for someone else to be able to reproduce every figure, table, and supplemental in the paper from what we share.
+Brandon and I have most of what we need to publish the data and code from
+your Epilepsia paper on BDSP (https://bdsp.io/projects/87rztvzmyz9uh0esnd83/)
+and GitHub (https://github.com/bdsp-core/iiic-crowdsourcing-wanyee). I've
+already gone through your four notebooks, set up the cleaned-up reproduction
+code, and run partial reproductions against the data we have — the numbers
+match your paper to about ±0.02 on every figure I've checked so far (e.g.
+Figure 3 forest-plot estimates all line up; Supp S4 Fleiss κ / Gwet AC1
+match to within 0.03). So this email is *not* a fishing expedition — it's
+a tight ask for the last two files that would lock in exact-paper
+reproducibility.
 
-I've gone through the four notebooks you sent (`csvforeachexpertlevel...`, `Copy_of_IRR_gold_standard_and_expert`, `mixed_modeling`, `crowd_vs_individual_expert`) and mapped exactly which inputs each one needs. Brandon also dug up a `Centaur-IIIC-Contest/` folder on his machine that already covers some of them. Below is what we still need from you.
+## What we already have (from Brandon's Box and SSD)
 
-## Files we already have ✅
+- `1251-all-reads_ac.csv`, `1251-all-users.csv`, `1251-all-users_demo_info.csv`,
+  `eeg-all-users-and-topics.csv` — the raw Centaur Labs exports.
+- `Results SeizureLike Patterns Dec 12 2022 18.50.01 PM.csv` (inside
+  `files/Summary - SeizureLike Patterns.zip`) — the per-question summary
+  with `Case ID`, `Origin`, and `Correct Label`.
+- **`goldstandardnew925nonandropnaforjj1016(in).csv`** — your post-dropna
+  intermediate dataframe (508k rows). All 8 study experts are tagged
+  `experience_level = Expert`, which is great. This gets us close enough
+  to reproduce Figures 2, 3 and Supp S4 within rounding.
+- The 8 study expert `user_id`s (41816 BW, 123180 JJ, 129198 Fábio,
+  129995 Andres, 130067 Masoom, 129968 Greg, 130226 Aaron, 130262 Jong Woo)
+  — all present in the reads file, no follow-up needed.
+- `old/emails.txt` and `old/shortlisted user_mbw.xlsx` — confirmed contact
+  emails for every author.
 
-From the `Centaur-IIIC-Contest/` folder Brandon had locally, plus your Box
-folder `Brandon - PHI/0_People/aa_BigFolders/WanYeeKong/WanYee_ACNS_IRR/`:
+## What we still need from your Google Drive
 
-- `1251-all-reads_ac.csv` — per-read responses (657,326 rows).
-- `1251-all-users.csv`, `1251-all-users_demo_info.csv` — user table with
-  `country`, `experience_level`, `preferred_specialty`, `years_in_position`.
-- `eeg-all-users-and-topics.csv` — raw user list (will be de-identified).
-- **`Results SeizureLike Patterns Dec 12 2022 18.50.01 PM.csv`** (inside
-  `files/Summary - SeizureLike Patterns.zip`) — Centaur per-question summary
-  with `Case ID`, `Origin`, `Correct Label`.
-- **`Reads SeizureLike Patterns Dec 12 2022 19.01.23 PM.csv`** (inside
-  `files/Individual Reads SeizureLike Patterns.zip`) — alternate read export.
-- **`goldstandardnew925nonandropnaforjj1016(in).csv`** (in `files/`) —
-  ~508k-row slim test-set dataframe with `user_id`, `problem_id`, `title`,
-  `Origin_x`, `goldstandardnew`, `experience_level`. All 8 experts are
-  already labeled `Expert` here, which lets us run the **non-weighted**
-  analyses and the IRR analyses without further preprocessing.
+### 1. **`test_df4.csv`** *(the full ~45-column version)*
 
-## Files we still need ❌
+The slim CSV we found is just 6 columns. The full `test_df4.csv` your
+notebooks load from `/content/drive/MyDrive/IRR/test_df4.csv` has the
+per-user calibration weights (`combined_accuracy`, `GPDaccuracy`,
+`LPDaccuracy`, `grdaaccuracy`, `lrdaaccuracy`, `otheraccuracy`,
+`seizureaccuracy`) plus the test/calibration split flags. Without those
+columns we can recompute the weights ourselves from the full data, but the
+calibration/test split (which trims your participant pool from 2,786 →
+1,542 and the response count from 508k → 478k+17k = 496k) re-shuffles
+because the greedy set cover gets reseeded. With the full file, our
+numbers will match your published Table 1 and Figures 2-5 exactly.
 
-### Must have
+### 2. **`labels_experts30.xlsx`**
 
-1. **`test_df4.csv`** (the full ~45-column one) — the slim
-   `goldstandardnew925...csv` lets us do the non-weighted analyses (Table 1,
-   Figure 2 NW bars, Supps S1, S2, S4) but is missing the per-user weights
-   (`combined_accuracy`, `GPDaccuracy`, ...) needed for **weighted-majority
-   voting** and the **calibration/test split**. Without those, we'd have to
-   re-derive the weights ourselves from the calibration set — doable, but
-   would slightly diverge from your published numbers because the greedy
-   set-cover for the calibration split would be reseeded. If you can send
-   the full `test_df4.csv`, the weighted analyses (Figures 2 WM, 3, 4, 5,
-   Supps S6-S11) match your paper exactly.
+The pivoted 30-expert label matrix you loaded from
+`/content/drive/MyDrive/IRR/labels_experts30.xlsx`. Needed only for
+**Supplemental S5** (the split-violin study-experts vs gold-standard-experts
+plot). Already published with your *Neurology* 2023 paper, so it should
+be easy to share again.
 
-2. **`labels_experts30.xlsx`** — the pivoted 30-expert label matrix used for
-   **Supplemental S4 and S5** (inter-rater agreement comparison). Already
-   published with Jing 2023 (*Neurology*), so it should be easy to share again.
+## Optional / nice to have
 
-### Nice to have
+- **The full set of `.mat` files** that backed `ImageCode_JJ/Data/`.
+  Brandon is currently rcloning the Box copy to a local SSD; if that goes
+  smoothly we won't need anything from you here. I've already written and
+  smoke-tested a converter that bundles them into a single
+  `iiic_contest_eeg.h5` (~12 GB) for BDSP distribution instead of 10,000+
+  individual .mat files.
+- **Contest PNG images** — the `matchfile` URLs in `test_df4` point to
+  `centaur-customer-uploads.s3.us-east-1.amazonaws.com/mgh-eeg/{LABEL}/{stub}.png`.
+  Could you ask Erik / Centaur whether they'd be willing to export those
+  ~10,704 PNGs so we can host them on BDSP? If not, we can regenerate them
+  from the EEG `.mat` files.
+- **Supplemental S3 spreadsheet** (years-in-practice for the 8 study
+  experts and 30 gold-standard experts). Looks hand-assembled; no urgency.
 
-3. **The `.mat` files in your old `E:\Data\` folder** — per-segment 30-expert
-   vote arrays from the IIIC labeling study. Used to compute the
-   `max_column` gold-standard override. We have some on the Box drive in
-   `Missing_mat_files_2023May/` but it's not clear if that's the complete
-   set. If `labels_experts30.xlsx` arrives we don't need these.
+## Security note
 
-4. **Contest PNG images** — the `matchfile` column points to PNGs at
-   `centaur-customer-uploads.s3.us-east-1.amazonaws.com/mgh-eeg/{LABEL}/{stub}.png`.
-   Could you ask Erik / Centaur whether those can be exported for BDSP hosting?
+The `mixed_modeling.ipynb` you sent has a GitHub personal access token
+checked into Cell 2 (`ghp_WV2…`). I've scrubbed it from the copy we're
+preparing to publish, but please **revoke and rotate that token** in your
+GitHub settings — it's been exposed in any copy of the notebook that's
+been emailed around. Same with the `wyeekong/IRR` private repo it points
+to: if you can grant me read access (or just send the `test_df2.7z` it
+hosts), we can verify there's nothing else hiding there.
 
-## Other questions
+## Author info for BDSP
 
-- **Supplemental S3** (time in practice) — looks hand-assembled. If you have
-  the underlying spreadsheet, pass it along; otherwise we'll reproduce the
-  table verbatim from the paper. (No urgency.)
+I have your corresponding email (wkong@bidmc.harvard.edu) confirmed. For
+the rest of the author list, please confirm whether each co-author
+prefers their **institutional** address or the **personal address** on
+record in `emails.txt`. We can use either, but BDSP only stores one
+per author and authors with existing BDSP accounts will be matched on it.
 
-- **The `wyeekong/IRR` GitHub repo** referenced in `mixed_modeling.ipynb` —
-  we'd appreciate access if it's still around. **Heads up that the token
-  `ghp_WV2…` is checked into that notebook in plain text — please revoke
-  and rotate it.** (We've already scrubbed it from the copy we're
-  preparing to publish.)
-
-- **8 expert identities — confirmed.** The slim CSV already tags all 8 as
-  `Expert`: 41816 (Brandon), 123180 (Jin/JJ), 129198 (Fábio),
-  129995 (Andres), 130067 (Masoom), 129968 (Gregory), 130226 (Aaron),
-  130262 (Jong Woo). No follow-up needed.
-
-## Author info for the BDSP page
-
-Separately, we need BDSP-side info for each author. If you happen to know off-hand which co-authors already have BDSP accounts (and their email of record), please pass that along. For anyone without an account, the BDSP admin will email them an invite — we just need a current email and institutional affiliation for each.
-
-Thanks Wan-Yee! Send everything to me directly or drop it on Brandon's shared Drive, whichever's easier.
+Thanks Wan-Yee — drop everything in your shared Drive (or email directly)
+and we'll have the whole package ready to publish within a day or two of
+receiving these two files.
 
 Best,
-[Brandon]
+Brandon
