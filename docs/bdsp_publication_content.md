@@ -269,12 +269,13 @@ the paper is available on GitHub at
 <p>To reproduce the paper from this data:</p>
 
 <ol>
+  <li>Apply for credentialed access through BDSP if you don't already
+  have it; the data live at
+  <code>s3://bdsp-opendata-credentialed/iiic-irr-crowd/</code>.</li>
   <li>Clone the GitHub repository and create a Python environment
   (<code>pip install -r requirements.txt</code>).</li>
-  <li>Place <code>test_df4.csv</code> and (optionally)
-  <code>labels_experts30.xlsx</code>,
-  <code>1251-all-users_demo_info.csv</code> in the repository's
-  <code>data/</code> folder.</li>
+  <li>Sync the S3 folder into your local checkout:
+  <pre>aws s3 sync s3://bdsp-opendata-credentialed/iiic-irr-crowd/annotations/ ./data/</pre></li>
   <li>Run <code>python scripts/reproduce_all.py</code> to regenerate every
   figure, table, and supplemental analysis. Individual figures can be run
   via the per-script entry points (e.g.
@@ -395,7 +396,8 @@ https://github.com/bdsp-core/iiic-crowdsourcing-wanyee
 ## access_policy
 
 ```
-0 (Open — once the IRB / DUA terms below are accepted)
+2 (Credentialed) -- requires BDSP account with completed DUA.
+S3 location: s3://bdsp-opendata-credentialed/iiic-irr-crowd/
 ```
 
 ## license

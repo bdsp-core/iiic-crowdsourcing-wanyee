@@ -5,7 +5,7 @@ top-level prefix will be the project's BDSP slug (substitute the real
 bucket and prefix as appropriate; placeholders below).
 
 ```
-s3://<bdsp-bucket>/<project-slug>/
+s3://bdsp-opendata-credentialed/iiic-irr-crowd/
 ├── README.md
 ├── CHANGELOG.md
 ├── LICENSE.txt                          ← CC BY-NC 4.0
