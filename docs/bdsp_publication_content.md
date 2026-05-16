@@ -191,47 +191,70 @@ crowd subgroup against the experts.
 ## content_description  (HTML)
 
 ```html
-<p>This BDSP folder contains:</p>
+<p>This BDSP project hosts the data and code that accompany Kong et al.
+(<em>Epilepsia</em> 2025). The S3 folder is organised into five
+sub-directories — annotations, raw exports, EEG signals, contest images,
+and docs:</p>
+
+<pre style="background:#f4f4f4;padding:8px;font-size:12px;">
+&lt;project-root&gt;/
+├── README.md, LICENSE.txt, citation.bib, CHANGELOG.md
+├── annotations/
+│   ├── test_df4.csv                  (~150 MB)  ← primary analysis dataframe
+│   ├── test_df4_dictionary.md
+│   ├── calibration_assignments.csv
+│   └── labels_experts30.xlsx
+├── raw_contest_exports/
+│   ├── 1251-all-reads_ac.csv         (~133 MB)
+│   ├── 1251-all-users_deidentified.csv
+│   ├── eeg-all-users-and-topics_deidentified.csv
+│   └── Results_SeizureLike_Patterns_Dec_12_2022.csv
+├── eeg_signals/
+│   ├── iiic_contest_eeg.h5           (~12 GB)   ← bundled per-segment EEG + spectrograms
+│   └── iiic_contest_eeg_schema.md
+├── contest_images/                                ← optional (subject to Centaur release)
+│   ├── manifest.csv
+│   └── png/{segment_id}.png
+└── docs/
+    ├── methods_summary.pdf
+    └── data_dictionary_full.pdf
+</pre>
+
+<p>Key files:</p>
 
 <ul>
-  <li><strong><code>test_df4.csv</code></strong> — the master per-response
-  dataframe (one row per (user, question) response, ~478,834 rows in the
-  test split + ~17,619 in the calibration split). Columns include
-  <code>user_id</code>, <code>problem_id</code>, <code>title</code> (the
-  user's selected SRPP), <code>goldstandardnew</code> (the gold-standard
-  SRPP), <code>experience_level</code>, <code>preferred_specialty</code>,
-  per-pattern calibration accuracies, the user's overall
-  <code>combined_accuracy</code> (used as the weight for weighted-majority
-  voting), and the contest image URL.</li>
+  <li><strong><code>annotations/test_df4.csv</code></strong> — the master
+  per-response dataframe (~496k rows, ~478,834 in the test split +
+  ~17,619 in the calibration split). One row per (user_id, problem_id)
+  with the user's selected SRPP, the gold-standard SRPP, the
+  experience-level group, the per-user/per-pattern calibration accuracies
+  (the weights used for weighted-majority voting), and the contest image
+  URL. Schema documented in
+  <code>annotations/test_df4_dictionary.md</code>.</li>
 
-  <li><strong><code>eeg-all-users-and-topics.csv</code> /
-  <code>1251-all-users.csv</code> / <code>1251-all-users_demo_info.csv</code></strong>
-  — de-identified Centaur Labs user tables. Email addresses, first/last
-  names, and any other directly identifying fields have been stripped.</li>
+  <li><strong><code>annotations/labels_experts30.xlsx</code></strong> — the
+  pivoted 30-expert label matrix from Jing et al. 2023; one row per EEG
+  segment, one column per expert; numeric values 0-5 map to (other,
+  seizure, lpd, gpd, lrda, grda). Used for Supp S4 and S5.</li>
 
-  <li><strong><code>1251-all-reads_ac.csv</code></strong> — the per-read
-  raw export from the DiagnosUs contest (657,326 reads across 4,951 users
-  on 10,704 unique EEG questions). This is the source from which
-  <code>test_df4.csv</code> was built.</li>
+  <li><strong><code>raw_contest_exports/</code></strong> — Centaur Labs
+  source exports with PII removed (email, first/last names,
+  app_display_name stripped). These are kept for provenance: the upstream
+  pipeline that builds <code>test_df4.csv</code> uses them directly.</li>
 
-  <li><strong><code>labels_experts30.xlsx</code></strong> — the 30-expert
-  pivoted label matrix from Jing et al. 2023. One row per EEG segment, one
-  column per expert; numeric values 0-5 map to (other, seizure, lpd, gpd,
-  lrda, grda). Used for the inter-rater-agreement analyses in
-  Supplemental S4 and S5.</li>
+  <li><strong><code>eeg_signals/iiic_contest_eeg.h5</code></strong> — one
+  HDF5 archive bundling the 50 s EEG signal (21 channels @ 200 Hz) and
+  four 10-minute regional spectrograms (LL/RL/LP/RP) per segment, plus
+  per-segment metadata (gold-standard label, 30-expert vote tallies,
+  contest image URL). Random access by segment_id via h5py; replaces what
+  would otherwise be 10,704 individual <code>.mat</code> files.</li>
 
-  <li><strong><code>images/</code></strong> (optional) — the contest
-  images themselves: 10-second EEG epochs in bipolar montage plus a
-  10-minute spectrogram per segment, as displayed to participants. The
-  filename stem matches the segment identifier used in
-  <code>test_df4.csv</code>'s <code>matchfile</code> column.</li>
+  <li><strong><code>contest_images/</code></strong> (if Centaur Labs
+  releases them) — the PNGs participants actually saw. Otherwise these
+  can be regenerated locally from <code>iiic_contest_eeg.h5</code>
+  using <code>scripts/contest_image_gen/make_contest_image.py</code> in
+  the GitHub repo.</li>
 </ul>
-
-<p>
-The same EEG <em>signal</em> data (the source recordings from which the
-contest images were generated) is available as part of the IIIC dataset
-that supports Jing et al., 2023, also hosted on BDSP.
-</p>
 ```
 
 ## usage_notes  (HTML)
