@@ -28,3 +28,10 @@ figures/*.csv
 
 # Notebook executions.
 notebooks_original/**/_outputs/
+
+# Staging area (bundled .h5, de-identified CSVs etc. headed for BDSP/S3).
+staging/
+
+# Scratch / one-off working directories.
+_scratch/
+_s3_listings/
