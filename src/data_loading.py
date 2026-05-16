@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from . import config
@@ -24,7 +25,8 @@ REQUIRED_COLUMNS = [
 
 
 def load_test_df4(path=None, drop_unscored=True,
-                   slim_fallback_path=None) -> pd.DataFrame:
+                   slim_fallback_path=None,
+                   apply_eligibility: bool | str = "auto") -> pd.DataFrame:
     """Load the master per-response dataframe and apply minimum cleanup.
 
     Parameters
@@ -40,49 +42,101 @@ def load_test_df4(path=None, drop_unscored=True,
         column file (e.g. ``goldstandardnew925.csv``). The fallback supports
         non-weighted analyses and IRR; per-user weights are recomputed in
         ``compute_per_user_weights`` if you need WM scoring.
+    apply_eligibility
+        Whether to apply the per-user calibration/test eligibility filter
+        from §2.3 of the paper. ``"auto"`` (default) applies it only when
+        the slim fallback is in use (since the full ``test_df4.csv`` is
+        already post-filter). ``True``/``False`` force apply or skip.
 
     Returns
     -------
-    pandas.DataFrame with a ``correct`` (0/1) column added.
+    pandas.DataFrame with a ``correct`` (0/1) column added (plus
+    ``in_calibration`` and ``qualified`` columns if the eligibility filter
+    was applied).
     """
     path = path or config.TEST_DF4_PATH
+    using_slim = False
     if not Path(path).exists() and slim_fallback_path is not None:
-        return _load_slim(slim_fallback_path, drop_unscored=drop_unscored)
-    if not Path(path).exists():
+        df = _load_slim(slim_fallback_path, drop_unscored=drop_unscored)
+        using_slim = True
+    elif not Path(path).exists():
         slim = config.DATA_DIR / "goldstandardnew925.csv"
-        if slim.exists():
-            return _load_slim(slim, drop_unscored=drop_unscored)
-        raise FileNotFoundError(
-            f"Neither {path} nor a slim fallback ({slim}) was found. "
-            "See data/README.md for how to obtain test_df4.csv."
+        if not slim.exists():
+            raise FileNotFoundError(
+                f"Neither {path} nor a slim fallback ({slim}) was found. "
+                "See data/README.md for how to obtain test_df4.csv."
+            )
+        df = _load_slim(slim, drop_unscored=drop_unscored)
+        using_slim = True
+
+    if not using_slim:
+        df = pd.read_csv(path)
+        # The original notebooks alternate between 'combined_accuracy' and
+        # 'combinedaccuracy' depending on which export they came from.
+        if "combinedaccuracy" in df.columns and "combined_accuracy" not in df.columns:
+            df = df.rename(columns={"combinedaccuracy": "combined_accuracy"})
+
+        missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
+        if missing:
+            raise ValueError(
+                f"test_df4.csv is missing required columns: {missing}. "
+                f"Got: {list(df.columns)}"
+            )
+
+        if drop_unscored:
+            df = df.dropna(subset=[
+                "user_id", "problem_id", "title", "goldstandardnew",
+                "experience_level"
+            ]).copy()
+
+        df["correct"] = (df["title"] == df["goldstandardnew"]).astype(int)
+        df["group"] = df["experience_level"].apply(
+            lambda x: "Expert" if x == "Expert" else "Crowd"
         )
 
-    df = pd.read_csv(path)
-    # The original notebooks alternate between 'combined_accuracy' and
-    # 'combinedaccuracy' depending on which export they came from. Normalise.
-    if "combinedaccuracy" in df.columns and "combined_accuracy" not in df.columns:
-        df = df.rename(columns={"combinedaccuracy": "combined_accuracy"})
+    # Apply eligibility filter when using the slim fallback (since the canon
+    # test_df4.csv has already been filtered upstream).
+    if apply_eligibility == "auto":
+        apply_eligibility = using_slim
+    if apply_eligibility:
+        df = apply_calibration_eligibility_filter(df)
+        # Recompute per-user weights on the calibration subset (matches §2.5).
+        # `compute_per_user_weights` already only uses correct/title/gold so
+        # restricting to calibration first is the right thing to do.
+        calib = df[df["in_calibration"]]
+        # Drop the auto-computed *accuracy columns (from _load_slim) and
+        # recompute them from the calibration subset only.
+        for c in ("GPDaccuracy", "LPDaccuracy", "grdaaccuracy",
+                  "lrdaaccuracy", "otheraccuracy", "seizureaccuracy",
+                  "combined_accuracy"):
+            if c in df.columns:
+                df = df.drop(columns=c)
+        df = _attach_user_weights(df, calib)
 
-    missing = [c for c in REQUIRED_COLUMNS if c not in df.columns]
-    if missing:
-        raise ValueError(
-            f"test_df4.csv is missing required columns: {missing}. "
-            f"Got: {list(df.columns)}"
-        )
-
-    if drop_unscored:
-        df = df.dropna(subset=[
-            "user_id", "problem_id", "title", "goldstandardnew",
-            "experience_level"
-        ]).copy()
-
-    df["correct"] = (df["title"] == df["goldstandardnew"]).astype(int)
-    df["group"] = df["experience_level"].apply(
-        lambda x: "Expert" if x == "Expert" else "Crowd"
-    )
     # avg_question_count is used as a covariate in every mixed-effects model;
     # it is the number of unique problems answered by each user.
     df["user_question_count"] = df.groupby("user_id")["problem_id"].transform("nunique")
+    return df
+
+
+def _attach_user_weights(df: pd.DataFrame, weight_source: pd.DataFrame) -> pd.DataFrame:
+    """Compute per-user, per-pattern accuracies on ``weight_source`` and merge
+    them into ``df``. Used after the eligibility filter so that weights come
+    from the calibration set only (matching the paper).
+    """
+    pat_col_map = {
+        "gpd": "GPDaccuracy", "lpd": "LPDaccuracy",
+        "grda": "grdaaccuracy", "lrda": "lrdaaccuracy",
+        "other": "otheraccuracy", "seizure": "seizureaccuracy",
+    }
+    accs = {}
+    for pat, col in pat_col_map.items():
+        sub = weight_source[weight_source["goldstandardnew"] == pat]
+        accs[col] = sub.groupby("user_id")["correct"].mean()
+    acc_df = pd.DataFrame(accs).fillna(0.0)
+    acc_df["combined_accuracy"] = acc_df.mean(axis=1)
+    df = df.merge(acc_df, left_on="user_id", right_index=True, how="left")
+    df["combined_accuracy"] = df["combined_accuracy"].fillna(0.0)
     return df
 
 
@@ -109,6 +163,73 @@ def _load_slim(path, drop_unscored: bool = True) -> pd.DataFrame:
 
     df = compute_per_user_weights(df)
     return df
+
+
+def apply_calibration_eligibility_filter(
+    df: pd.DataFrame,
+    label_col: str = "title",
+    gold_col: str = "goldstandardnew",
+    patterns=("gpd", "grda", "lpd", "lrda", "other", "seizure"),
+) -> pd.DataFrame:
+    """Apply the per-user eligibility filter from Section 2.3 of the paper.
+
+    For each user, build the *calibration set* as the union of two minimal
+    covers over their responses:
+      1. one question per SRPP label, picked from their own ``title`` answers;
+      2. one question per SRPP label, picked from the ``goldstandardnew``
+         column.
+    Each question carries exactly one label per column, so the "minimum set
+    cover" is trivial -- pick any one question per (column, label).
+
+    A user is *qualified* iff
+      * both covers can be built (i.e. their responses span all six labels
+        in their own answers AND in the gold standard), and
+      * at least one response falls outside the calibration set (so the
+        test set is non-empty).
+
+    Returns the kept rows with two new columns:
+      * ``in_calibration``: True for the user's calibration questions,
+        False for their test-set questions.
+      * ``qualified``: always True after filtering.
+
+    Ties are broken deterministically by ``problem_id`` (ascending).
+    """
+    needed = set(patterns)
+    df = df.copy()
+    df_q = df.drop_duplicates(["user_id", "problem_id"]).sort_values(
+        ["user_id", "problem_id"]
+    )
+
+    qualified_users: set = set()
+    calib_pairs: set = set()   # (user_id, problem_id) in calibration set
+
+    for uid, sub in df_q.groupby("user_id", sort=False):
+        if not needed.issubset(sub[label_col]) or not needed.issubset(sub[gold_col]):
+            continue
+        # For each (column, label), pick the smallest problem_id where the
+        # user answered/has-gold-of that label. Union the picks.
+        cover: set = set()
+        for col in (label_col, gold_col):
+            first_pid_per_label = (
+                sub.groupby(col, observed=True)["problem_id"].min().to_dict()
+            )
+            for p in patterns:
+                if p in first_pid_per_label:
+                    cover.add(int(first_pid_per_label[p]))
+        # Need at least one test-set question.
+        if sub["problem_id"].nunique() <= len(cover):
+            continue
+        qualified_users.add(uid)
+        for pid in cover:
+            calib_pairs.add((uid, pid))
+
+    out = df[df["user_id"].isin(qualified_users)].copy()
+    out["in_calibration"] = list(
+        zip(out["user_id"], out["problem_id"])
+    )
+    out["in_calibration"] = out["in_calibration"].isin(calib_pairs)
+    out["qualified"] = True
+    return out
 
 
 def compute_per_user_weights(df: pd.DataFrame) -> pd.DataFrame:

@@ -1,12 +1,8 @@
-"""Table 1: number of questions answered and users per group (calibration + test).
+"""Table 1: number of questions answered and users per group.
 
-The original notebook (csvforeachexpertlevel...ipynb) computes this from
-test_df4.csv after applying the calibration/test split. Calibration counts
-come from a separate ``calibration_df`` not present in the shared data; this
-script reproduces the part of Table 1 we can build from test_df4 alone, which
-is the **test-set row counts** (the larger block of Table 1).
-
-If you have the calibration dataframe, set CALIB_PATH below.
+Reproduces both blocks of the paper's Table 1: calibration dataset (top
+block in the published table) and test dataset (bottom block). Counts come
+from the per-user eligibility filter described in Section 2.3.
 """
 from __future__ import annotations
 
@@ -20,7 +16,6 @@ import pandas as pd
 from src.data_loading import load_test_df4
 
 
-# Map raw Centaur Labs experience_level values to the paper's groupings.
 GROUP_MAP = {
     "Expert":                    ("Expert", "Expert"),
     "MD":                        ("MD", "MD (all)"),
@@ -37,25 +32,44 @@ GROUP_MAP = {
 }
 
 
+def _summary(sub: pd.DataFrame) -> pd.DataFrame:
+    sub = sub.copy()
+    sub["Group"] = sub["experience_level"].map(lambda x: GROUP_MAP.get(x, ("Unknown", x))[0])
+    sub["Experience level"] = sub["experience_level"].map(
+        lambda x: GROUP_MAP.get(x, ("Unknown", x))[1]
+    )
+    out = (sub.groupby(["Group", "Experience level"])
+              .agg(n_questions=("problem_id", "count"),
+                   n_users=("user_id", "nunique"))
+              .reset_index())
+    out["questions/users"] = out["n_questions"].astype(str) + "/" + out["n_users"].astype(str)
+    return out
+
+
 def main():
     df = load_test_df4()
 
-    df["Group"] = df["experience_level"].map(lambda x: GROUP_MAP.get(x, ("Unknown", x))[0])
-    df["Experience level"] = df["experience_level"].map(
-        lambda x: GROUP_MAP.get(x, ("Unknown", x))[1]
-    )
+    print("=" * 70)
+    print("CALIBRATION DATASET")
+    print("=" * 70)
+    calib = _summary(df[df["in_calibration"]])
+    print(calib.to_string(index=False))
+    print(f"\nCalibration totals: {calib['n_questions'].sum():,} questions, "
+          f"{df.loc[df['in_calibration'], 'user_id'].nunique():,} users")
 
-    tbl = (df.groupby(["Group", "Experience level"])
-             .agg(n_questions=("problem_id", "count"),
-                  n_users=("user_id", "nunique"))
-             .reset_index())
-    tbl["questions/users"] = tbl["n_questions"].astype(str) + "/" + tbl["n_users"].astype(str)
-    print(tbl.to_string(index=False))
+    print("\n" + "=" * 70)
+    print("TEST DATASET")
+    print("=" * 70)
+    test = _summary(df[~df["in_calibration"]])
+    print(test.to_string(index=False))
+    print(f"\nTest totals: {test['n_questions'].sum():,} questions, "
+          f"{df.loc[~df['in_calibration'], 'user_id'].nunique():,} users")
 
-    out = ROOT / "figures" / "table1_test_dataset.csv"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    tbl.to_csv(out, index=False)
-    print(f"\nWrote {out}")
+    out_dir = ROOT / "figures"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    calib.to_csv(out_dir / "table1_calibration.csv", index=False)
+    test.to_csv(out_dir / "table1_test.csv", index=False)
+    print(f"\nWrote {out_dir / 'table1_{calibration,test}.csv'}")
 
 
 if __name__ == "__main__":
