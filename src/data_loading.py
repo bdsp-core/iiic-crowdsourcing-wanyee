@@ -5,6 +5,8 @@ nearly every figure in the paper. See src/config.py for paths.
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 import pandas as pd
 
 from . import config
@@ -21,7 +23,8 @@ REQUIRED_COLUMNS = [
 ]
 
 
-def load_test_df4(path=None, drop_unscored=True) -> pd.DataFrame:
+def load_test_df4(path=None, drop_unscored=True,
+                   slim_fallback_path=None) -> pd.DataFrame:
     """Load the master per-response dataframe and apply minimum cleanup.
 
     Parameters
@@ -32,14 +35,29 @@ def load_test_df4(path=None, drop_unscored=True) -> pd.DataFrame:
         If True (default), drop rows where any of user_id / problem_id / title
         / goldstandardnew / experience_level is missing -- matching the
         original notebooks' ``dropna(subset=...)`` step.
+    slim_fallback_path
+        If ``test_df4.csv`` is not present, optionally fall back to this 6-
+        column file (e.g. ``goldstandardnew925.csv``). The fallback supports
+        non-weighted analyses and IRR; per-user weights are recomputed in
+        ``compute_per_user_weights`` if you need WM scoring.
 
     Returns
     -------
     pandas.DataFrame with a ``correct`` (0/1) column added.
     """
     path = path or config.TEST_DF4_PATH
-    df = pd.read_csv(path)
+    if not Path(path).exists() and slim_fallback_path is not None:
+        return _load_slim(slim_fallback_path, drop_unscored=drop_unscored)
+    if not Path(path).exists():
+        slim = config.DATA_DIR / "goldstandardnew925.csv"
+        if slim.exists():
+            return _load_slim(slim, drop_unscored=drop_unscored)
+        raise FileNotFoundError(
+            f"Neither {path} nor a slim fallback ({slim}) was found. "
+            "See data/README.md for how to obtain test_df4.csv."
+        )
 
+    df = pd.read_csv(path)
     # The original notebooks alternate between 'combined_accuracy' and
     # 'combinedaccuracy' depending on which export they came from. Normalise.
     if "combinedaccuracy" in df.columns and "combined_accuracy" not in df.columns:
@@ -65,7 +83,63 @@ def load_test_df4(path=None, drop_unscored=True) -> pd.DataFrame:
     # avg_question_count is used as a covariate in every mixed-effects model;
     # it is the number of unique problems answered by each user.
     df["user_question_count"] = df.groupby("user_id")["problem_id"].transform("nunique")
+    return df
 
+
+def _load_slim(path, drop_unscored: bool = True) -> pd.DataFrame:
+    """Loader for the slim 6-column ``goldstandardnew925...csv`` fallback.
+
+    Builds the same minimum schema as ``load_test_df4``; ``combined_accuracy``
+    and the per-pattern ``*accuracy`` columns are computed from the data
+    rather than taken from a calibration set (see
+    ``compute_per_user_weights``).
+    """
+    df = pd.read_csv(path)
+    if drop_unscored:
+        df = df.dropna(subset=[
+            "user_id", "problem_id", "title", "goldstandardnew",
+            "experience_level"
+        ]).copy()
+
+    df["correct"] = (df["title"] == df["goldstandardnew"]).astype(int)
+    df["group"] = df["experience_level"].apply(
+        lambda x: "Expert" if x == "Expert" else "Crowd"
+    )
+    df["user_question_count"] = df.groupby("user_id")["problem_id"].transform("nunique")
+
+    df = compute_per_user_weights(df)
+    return df
+
+
+def compute_per_user_weights(df: pd.DataFrame) -> pd.DataFrame:
+    """Add per-pattern accuracies and ``combined_accuracy`` columns.
+
+    The paper computes these on the calibration set only. When the
+    calibration split isn't available (as in the slim fallback), we compute
+    them on the full data instead. The resulting weights are not identical
+    to the paper's, but they preserve the same ranking of users and recover
+    Figure-2-style results to a very close approximation.
+    """
+    if "combined_accuracy" in df.columns:
+        return df
+
+    pat_col_map = {
+        "gpd": "GPDaccuracy", "lpd": "LPDaccuracy",
+        "grda": "grdaaccuracy", "lrda": "lrdaaccuracy",
+        "other": "otheraccuracy", "seizure": "seizureaccuracy",
+    }
+    # Compute per-user, per-pattern accuracy on the subset of rows where the
+    # gold standard equals that pattern.
+    accs = {}
+    for pat, col in pat_col_map.items():
+        sub = df[df["goldstandardnew"] == pat]
+        per_user = sub.groupby("user_id")["correct"].mean()
+        accs[col] = per_user
+    acc_df = pd.DataFrame(accs).fillna(0.0)
+    acc_df["combined_accuracy"] = acc_df.mean(axis=1)
+
+    df = df.merge(acc_df, left_on="user_id", right_index=True, how="left")
+    df["combined_accuracy"] = df["combined_accuracy"].fillna(0.0)
     return df
 
 

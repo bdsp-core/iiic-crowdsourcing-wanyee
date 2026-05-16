@@ -12,33 +12,71 @@ I've gone through the four notebooks you sent (`csvforeachexpertlevel...`, `Copy
 
 ## Files we already have ✅
 
-- `1251-all-reads_ac.csv` — per-read individual responses (657,326 rows).
-- `1251-all-users.csv` and `1251-all-users_demo_info.csv` — Centaur Labs user table with `country`, `experience_level`, `preferred_specialty`, `years_in_position`. 3,300 users have demo info; 1,651 users have reads but no demo. We've already confirmed all 8 experts' `user_id`s appear in the reads.
-- `eeg-all-users-and-topics.csv` — Centaur Labs raw user list (id, email, first, last, locale, participated_in_topics). Will be de-identified before publishing.
+From the `Centaur-IIIC-Contest/` folder Brandon had locally, plus your Box
+folder `Brandon - PHI/0_People/aa_BigFolders/WanYeeKong/WanYee_ACNS_IRR/`:
+
+- `1251-all-reads_ac.csv` — per-read responses (657,326 rows).
+- `1251-all-users.csv`, `1251-all-users_demo_info.csv` — user table with
+  `country`, `experience_level`, `preferred_specialty`, `years_in_position`.
+- `eeg-all-users-and-topics.csv` — raw user list (will be de-identified).
+- **`Results SeizureLike Patterns Dec 12 2022 18.50.01 PM.csv`** (inside
+  `files/Summary - SeizureLike Patterns.zip`) — Centaur per-question summary
+  with `Case ID`, `Origin`, `Correct Label`.
+- **`Reads SeizureLike Patterns Dec 12 2022 19.01.23 PM.csv`** (inside
+  `files/Individual Reads SeizureLike Patterns.zip`) — alternate read export.
+- **`goldstandardnew925nonandropnaforjj1016(in).csv`** (in `files/`) —
+  ~508k-row slim test-set dataframe with `user_id`, `problem_id`, `title`,
+  `Origin_x`, `goldstandardnew`, `experience_level`. All 8 experts are
+  already labeled `Expert` here, which lets us run the **non-weighted**
+  analyses and the IRR analyses without further preprocessing.
 
 ## Files we still need ❌
 
-### Must have (blocks ~all reproductions)
+### Must have
 
-1. **`test_df4.csv`** — the master analysis dataframe used by `mixed_modeling.ipynb` and `crowd_vs_individual_expert.ipynb` (their cell 3 reads it from `/content/drive/MyDrive/IRR/test_df4.csv`). This is the row-per-response table after you've already merged in the gold-standard label and the per-user-per-pattern calibration accuracies. **This single file unblocks Table 1 and Figures 2–5 plus Supplementals S2, S6–S11**.
+1. **`test_df4.csv`** (the full ~45-column one) — the slim
+   `goldstandardnew925...csv` lets us do the non-weighted analyses (Table 1,
+   Figure 2 NW bars, Supps S1, S2, S4) but is missing the per-user weights
+   (`combined_accuracy`, `GPDaccuracy`, ...) needed for **weighted-majority
+   voting** and the **calibration/test split**. Without those, we'd have to
+   re-derive the weights ourselves from the calibration set — doable, but
+   would slightly diverge from your published numbers because the greedy
+   set-cover for the calibration split would be reseeded. If you can send
+   the full `test_df4.csv`, the weighted analyses (Figures 2 WM, 3, 4, 5,
+   Supps S6-S11) match your paper exactly.
 
-2. **`labels_experts30.xlsx`** — the pivoted 30-expert label matrix used for **Supplemental S4 and S5** (inter-rater agreement comparison). `Copy_of_IRR_gold_standard_and_expert.ipynb` cell 2 reads it from `/content/drive/MyDrive/IRR/labels_experts30.xlsx`. Already published with Jing 2023 (*Neurology*), so it should be easy to share again.
+2. **`labels_experts30.xlsx`** — the pivoted 30-expert label matrix used for
+   **Supplemental S4 and S5** (inter-rater agreement comparison). Already
+   published with Jing 2023 (*Neurology*), so it should be easy to share again.
 
-3. **`Results SeizureLike Patterns Dec 12 2022 18.50.01 PM.csv`** — the Centaur Labs *per-question* summary export with `Case ID`, `Origin`, and `Correct Label` columns. Used by `csvforeachexpertlevelandcompletewithgoldstandard.ipynb` cell 0. Without this we can't reproduce the upstream "build test_df4" pipeline end-to-end (though we don't strictly need it if you can send #1 directly).
+### Nice to have
 
-### Nice to have (for full provenance)
+3. **The `.mat` files in your old `E:\Data\` folder** — per-segment 30-expert
+   vote arrays from the IIIC labeling study. Used to compute the
+   `max_column` gold-standard override. We have some on the Box drive in
+   `Missing_mat_files_2023May/` but it's not clear if that's the complete
+   set. If `labels_experts30.xlsx` arrives we don't need these.
 
-4. **The `.mat` files in your old `E:\Data\` folder** — per-segment 30-expert vote arrays from the IIIC labeling study. Used to compute the `max_column` gold-standard override. Same files as the Jing 2023 *Neurology* paper. If they're gone, we'll work from `labels_experts30.xlsx` alone.
-
-5. **Contest PNG images** — the `matchfile` column in `test_df4.csv` points to PNGs at `centaur-customer-uploads.s3.us-east-1.amazonaws.com/mgh-eeg/{LABEL}/{stub}.png`. Could you ask Erik / Centaur whether those PNGs can be exported to a folder we can host on BDSP? If not, we can regenerate them from the source IIIC EEGs.
+4. **Contest PNG images** — the `matchfile` column points to PNGs at
+   `centaur-customer-uploads.s3.us-east-1.amazonaws.com/mgh-eeg/{LABEL}/{stub}.png`.
+   Could you ask Erik / Centaur whether those can be exported for BDSP hosting?
 
 ## Other questions
 
-- **Supplemental S3** (time in practice for the 8 study experts and the 30 gold-standard experts) — looks like that table was assembled by hand. Do you have the underlying spreadsheet? If so, pass it along; otherwise we'll just reproduce the table verbatim from the paper.
+- **Supplemental S3** (time in practice) — looks hand-assembled. If you have
+  the underlying spreadsheet, pass it along; otherwise we'll reproduce the
+  table verbatim from the paper. (No urgency.)
 
-- **The `wyeekong/IRR` GitHub repo** referenced in your `mixed_modeling.ipynb` (the one that downloads `test_df2.7z`) — we'd appreciate access if it's still around. **Also: heads up that the token `ghp_WV2…` is checked into that notebook in plain text — please revoke and rotate that token before anything gets pushed publicly.**
+- **The `wyeekong/IRR` GitHub repo** referenced in `mixed_modeling.ipynb` —
+  we'd appreciate access if it's still around. **Heads up that the token
+  `ghp_WV2…` is checked into that notebook in plain text — please revoke
+  and rotate it.** (We've already scrubbed it from the copy we're
+  preparing to publish.)
 
-- **8 expert identities** — Brandon's reads file already confirms the 8 expert `user_id`s match: `41816` (Brandon), `123180` (Jin), `129198` (Fábio), `129995` (Andres), `130067` (Masoom), `129968` (Gregory), `130226` (Aaron), `130262` (Jong Woo). But the `experience_level` column in `1251-all-users_demo_info.csv` doesn't tag any of them as "Expert" — looks like you set that flag manually downstream. Could you confirm the rule you used, or send the lookup table that mapped `user_id` → "Expert"?
+- **8 expert identities — confirmed.** The slim CSV already tags all 8 as
+  `Expert`: 41816 (Brandon), 123180 (Jin/JJ), 129198 (Fábio),
+  129995 (Andres), 130067 (Masoom), 129968 (Gregory), 130226 (Aaron),
+  130262 (Jong Woo). No follow-up needed.
 
 ## Author info for the BDSP page
 
