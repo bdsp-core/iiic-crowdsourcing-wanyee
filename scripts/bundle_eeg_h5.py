@@ -47,16 +47,103 @@ EEG_CHANNELS_21 = [
 
 
 def open_mat(path: Path) -> dict:
-    """Read one .mat file and return its data_50sec + four spectrograms."""
+    """Read one .mat file in either Wan-Yee/Jin or SpikeNet2 format.
+
+    Returns a dict with::
+
+      "data_50sec": (21, 10000) float64                    # always present
+      "specs":      {"LL": arr, "RL": arr, "LP": arr, "RP": arr}
+                    -- each arr is (100, 300) float64 from the full 10-min
+                    window when available; otherwise (100, 300) padded with
+                    NaN on the time axis from the partial spectrograms we
+                    can compute from the 50 s clip (centred in the array).
+      "spec_source": "10min" or "50sec_partial"
+
+    SpikeNet2-format files contain only ``data`` (20, 10000), ``channels``,
+    and ``Fs`` -- no precomputed spectrograms. For those, we pad to 21
+    channels (zero row for Photic) and compute partial spectrograms from
+    the 50 s clip.
+    """
     d = sio.loadmat(str(path))
-    data = d["data_50sec"]                     # (21, 10000) float64
-    spec_cell = d["spec_10min"]                # (4, 2) object
-    specs = {}
-    for row in spec_cell:
-        # row[0] is the region-name array (e.g., ['LL']); row[1] is the spec array.
-        region = str(row[0][0])
-        specs[region] = row[1]
-    return {"data_50sec": data, "specs": specs}
+    if "data_50sec" in d and "spec_10min" in d:
+        data = d["data_50sec"]
+        spec_cell = d["spec_10min"]
+        specs = {}
+        for row in spec_cell:
+            region = str(row[0][0])
+            specs[region] = row[1]
+        return {"data_50sec": data, "specs": specs, "spec_source": "10min"}
+
+    if "data" in d and "channels" in d:
+        # SpikeNet2 format: (20, 10000) -- pad Photic row with zeros to (21, 10000).
+        data20 = d["data"]
+        data = np.zeros((21, data20.shape[1]), dtype=data20.dtype)
+        data[:20] = data20
+        specs = _compute_partial_spectrograms(data, fs=int(d["Fs"][0][0]))
+        return {"data_50sec": data, "specs": specs,
+                "spec_source": "50sec_partial"}
+
+    raise ValueError(
+        f"Unrecognised .mat schema in {path.name}: keys = "
+        f"{sorted(k for k in d if not k.startswith('__'))}"
+    )
+
+
+# Bipolar montage used to reduce monopolar EEG to the four regional chains.
+# Indices are 0-based into the 21-channel order from src.config.
+_REGION_CHANNELS = {
+    "LL": [(0, 4), (4, 5), (5, 6), (6, 7)],     # Fp1-F7, F7-T3, T3-T5, T5-O1
+    "RL": [(11, 15), (15, 16), (16, 17), (17, 18)],  # Fp2-F8, F8-T4, T4-T6, T6-O2
+    "LP": [(0, 1), (1, 2), (2, 3), (3, 7)],     # Fp1-F3, F3-C3, C3-P3, P3-O1
+    "RP": [(11, 12), (12, 13), (13, 14), (14, 18)],  # Fp2-F4, F4-C4, C4-P4, P4-O2
+}
+
+
+def _compute_partial_spectrograms(data_21ch: np.ndarray, fs: int = 200,
+                                   n_freq_bins: int = 100,
+                                   total_time_bins: int = 300) -> dict:
+    """Best-effort reconstruction of regional-average spectrograms from
+    a 50 s monopolar EEG clip.
+
+    Returns ``(100, 300)`` arrays (the canonical shape for Jin's
+    ``spec_10min``) padded with NaN along the time axis so that the
+    centred slice covers the part of the 10-minute window actually
+    available (50 s = ~25 time bins out of 300).
+    """
+    from scipy.signal import spectrogram
+
+    out = {}
+    # 5 s window at 200 Hz -> 1000 samples -> 0.2 Hz freq resolution
+    # (matches Jin's 100 freq bins over 0-20 Hz). Overlap = 3 s gives a
+    # ~24-bin time axis for a 50 s clip.
+    nperseg = fs * 5
+    noverlap = fs * 3
+    for region, pairs in _REGION_CHANNELS.items():
+        # Build the four bipolar derivations, then time-average across them.
+        bipolar = np.stack([data_21ch[a] - data_21ch[b] for a, b in pairs])
+        f, t, S = spectrogram(bipolar, fs=fs, nperseg=nperseg,
+                              noverlap=noverlap, axis=-1)
+        # Average across the 4 derivations and clip to 0-20 Hz (100 bins).
+        S_mean = S.mean(axis=0)               # (n_freq, n_time)
+        # Map onto a canonical 100-bin freq axis (0..20 Hz). The spectrogram
+        # already starts at 0 Hz; just take the first 100 bins.
+        f_band = (f >= 0) & (f <= 20)
+        S_band = S_mean[f_band]
+        # Resample (or pad) to exactly 100 freq bins.
+        if S_band.shape[0] > n_freq_bins:
+            S_band = S_band[:n_freq_bins]
+        elif S_band.shape[0] < n_freq_bins:
+            pad = np.full((n_freq_bins - S_band.shape[0], S_band.shape[1]),
+                          np.nan, dtype=S_band.dtype)
+            S_band = np.vstack([S_band, pad])
+        # Pad time axis to 300 bins, centred.
+        n_time = S_band.shape[1]
+        full = np.full((n_freq_bins, total_time_bins), np.nan,
+                       dtype=S_band.dtype)
+        start = (total_time_bins - n_time) // 2
+        full[:, start:start + n_time] = S_band
+        out[region] = full
+    return out
 
 
 def stem_to_segment_id(path: Path) -> str:
@@ -121,6 +208,8 @@ def write_segment(h5_root: h5py.Group, segment_id: str, mat: dict,
         grp.create_dataset(f"spec_{region}", data=arr32,
                            chunks=arr32.shape,
                            compression="gzip", compression_opts=9)
+
+    grp.attrs["spec_source"] = str(mat.get("spec_source", "10min"))
 
     if ann_row is not None:
         grp.attrs["gold_standard_label"] = str(ann_row.get("goldstandardnew", ""))
