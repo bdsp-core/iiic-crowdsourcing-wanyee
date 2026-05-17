@@ -78,7 +78,7 @@ The S3 layout is fully spec'd in [`docs/s3_folder_layout.md`](./s3_folder_layout
 
   ```bash
   python scripts/bundle_eeg_h5.py \
-    --mat-dir /Volumes/Extreme\ SSD/WanYee_ACNS_IRR/ImageCode_JJ/Data \
+    --mat-dir /path/to/ImageCode_JJ/Data \
     --out data/iiic_contest_eeg.h5 \
     --annotations data/test_df4.csv \
     --experts30 data/labels_experts30.xlsx
@@ -110,7 +110,7 @@ Sequence as documented in [`docs/bdsp_admin_steps.md`](./bdsp_admin_steps.md):
 - [ ] **Push the GitHub repo** (`bdsp-core/iiic-crowdsourcing-wanyee`):
 
   ```bash
-  cd /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing
+  cd /path/to/iiic-crowdsourcing
   gh repo create bdsp-core/iiic-crowdsourcing-wanyee \
     --public \
     --description "Code + data pointers for Kong et al. 2025 (Epilepsia, doi:10.1111/epi.18547)" \

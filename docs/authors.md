@@ -23,7 +23,7 @@ the **submitting author**; she is also the **corresponding author**.
 ## What I'm confident about
 
 All 13 authors now have at least one confirmed email — most from
-`/Volumes/Extreme SSD/WanYee_ACNS_IRR/old/emails.txt`, which was the original
+the `old/emails.txt` file in Wan-Yee's Box folder, which was the original
 study-coordination email list Wan-Yee maintained:
 
 - **#1 Kong (corresponding)**: wkong@bidmc.harvard.edu (paper itself).

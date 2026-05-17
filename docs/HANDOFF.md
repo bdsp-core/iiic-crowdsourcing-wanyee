@@ -6,7 +6,7 @@ section lists the content file, the destination, and step-by-step
 instructions. Path conventions:
 
 * **Repo root** (all paths below are relative to it):
-  `/Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing/`
+  `/path/to/iiic-crowdsourcing/`
 * **GitHub:** https://github.com/bdsp-core/iiic-crowdsourcing-wanyee (live)
 * **BDSP project:** https://bdsp.io/projects/87rztvzmyz9uh0esnd83/overview/
 * **S3 destination:** `s3://bdsp-opendata-credentialed/iiic-irr-crowd/`
@@ -191,7 +191,7 @@ Two user-table CSVs have PII (`email`, `first`, `last`,
 `app_display_name`). The read-table doesn't. Run:
 
 ```bash
-cd /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing
+cd /path/to/iiic-crowdsourcing
 mkdir -p staging/raw_contest_exports
 
 # eeg-all-users-and-topics.csv -- drop email/first/last/app_display_name
@@ -231,7 +231,7 @@ cp data/centaur_summary.csv staging/raw_contest_exports/Results_SeizureLike_Patt
 ### 4.2 Once `test_df4.csv` arrives from Wan-Yee
 
 ```bash
-cd /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing
+cd /path/to/iiic-crowdsourcing
 mkdir -p staging/annotations
 cp /path/to/test_df4.csv staging/annotations/
 cp /path/to/labels_experts30.xlsx staging/annotations/
@@ -244,7 +244,7 @@ Run the bundler to produce the single HDF5 archive:
 ```bash
 mkdir -p staging/eeg_signals
 python scripts/bundle_eeg_h5.py \
-  --mat-dir "/Volumes/Extreme SSD/WanYee_ACNS_IRR/ImageCode_JJ/Data" \
+  --mat-dir /path/to/ImageCode_JJ/Data \
   --out staging/eeg_signals/iiic_contest_eeg.h5 \
   --annotations staging/annotations/test_df4.csv \
   --experts30 staging/annotations/labels_experts30.xlsx
@@ -256,7 +256,7 @@ re-runs (overwrite mode).
 ### 4.4 Drop the static files into staging
 
 ```bash
-cd /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing
+cd /path/to/iiic-crowdsourcing
 cp LICENSE staging/LICENSE.txt
 cp README.md staging/
 
@@ -293,7 +293,7 @@ CHG
 
 ```bash
 aws --profile opendata-write s3 sync \
-  /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing/staging/ \
+  /path/to/iiic-crowdsourcing/staging/ \
   s3://bdsp-opendata-credentialed/iiic-irr-crowd/ \
   --exclude '.DS_Store'
 
@@ -335,7 +335,7 @@ Once sections 2-4 are done:
   final published URL after DOI registration).
 * Tag a `v1.0.0` release on GitHub matching the BDSP version:
   ```bash
-  cd /Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing
+  cd /path/to/iiic-crowdsourcing
   git tag -a v1.0.0 -m "Initial release accompanying BDSP publication"
   git push origin v1.0.0
   ```
@@ -382,7 +382,7 @@ once the dependencies above arrive. Tell me when to go:
 
 ## 8. Quick reference: where Claude's work currently lives
 
-* **Locally:** `/Users/mwestover/GithubRepos/wanyee-irr/iiic-crowdsourcing/`
+* **Locally:** `/path/to/iiic-crowdsourcing/`
 * **GitHub:** https://github.com/bdsp-core/iiic-crowdsourcing-wanyee (8 commits, public)
 * **S3 (write-verified, currently empty):** `s3://bdsp-opendata-credentialed/iiic-irr-crowd/`
 * **BDSP project page (placeholder content):** https://bdsp.io/projects/87rztvzmyz9uh0esnd83/overview/
