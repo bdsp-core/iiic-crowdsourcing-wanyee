@@ -9,11 +9,20 @@ table, and supplemental analysis in:
 > expert performance.* **Epilepsia** 2025;66(11):4366-4380.
 > [doi:10.1111/epi.18547](https://doi.org/10.1111/epi.18547)
 
-The data live on BDSP at
-**https://bdsp.io/projects/87rztvzmyz9uh0esnd83/** — download `test_df4.csv`
-(plus `labels_experts30.xlsx` for Supplemental S4-S5 and the demographics
-CSVs for Supplemental S1) into [`data/`](data/) and you can rerun every
-analysis below.
+The data are hosted on AWS S3 at `s3://bdsp-opendata-credentialed/iiic-irr-crowd/`
+under BDSP's **credentialed-access** policy. Apply for credentialed access at
+the BDSP publication page —
+**https://bdsp.io/content/87rztvzmyz9uh0esnd83/** (DOI
+[10.60508/fn0v-8w16](https://doi.org/10.60508/fn0v-8w16)) — then sync the
+files locally:
+
+```bash
+aws s3 sync s3://bdsp-opendata-credentialed/iiic-irr-crowd/annotations/ data/
+aws s3 sync s3://bdsp-opendata-credentialed/iiic-irr-crowd/eeg_signals/  data/
+```
+
+`test_df4.csv` (plus `labels_experts30.xlsx` for Supplemental S4–S5 and the
+demographics CSVs for Supplemental S1) is what every analysis below depends on.
 
 ## Repository layout
 
