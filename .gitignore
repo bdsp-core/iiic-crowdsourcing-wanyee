@@ -35,3 +35,13 @@ staging/
 # Scratch / one-off working directories.
 _scratch/
 _s3_listings/
+
+# Reproduction data lives on S3 (see data/raw/manifest.csv) — never commit it
+/data/*.csv
+/data/*.xlsx
+/data/_unzipped/
+# Generated figure outputs (regenerate via scripts/reproduce_all.py)
+/figures/*.png
+/figures/*.pdf
+/figures/*.csv
+!/data/raw/manifest.csv

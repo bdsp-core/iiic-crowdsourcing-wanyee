@@ -1,0 +1,16 @@
+path,size_bytes,etag,s3_uri
+CHANGELOG.md,388,dfba11911706edc2687af7d2ce7cee80,s3://bdsp-opendata-credentialed/iiic-irr-crowd/CHANGELOG.md
+LICENSE.txt,1639,967f440e0bf797581c98c71300f634cb,s3://bdsp-opendata-credentialed/iiic-irr-crowd/LICENSE.txt
+README.md,5089,03873768748aac3f500f609a1728453d,s3://bdsp-opendata-credentialed/iiic-irr-crowd/README.md
+annotations/labels_experts30.xlsx,798884,80dae2bcda1fc8e783d322a8b71280af,s3://bdsp-opendata-credentialed/iiic-irr-crowd/annotations/labels_experts30.xlsx
+annotations/test_df4.csv,296526165,65ae88756a55bc2f0ad749d29948ab6b-36,s3://bdsp-opendata-credentialed/iiic-irr-crowd/annotations/test_df4.csv
+annotations/test_df4_dictionary.md,6795,50fbfd2b1f86a137b9739967f4a23cc0,s3://bdsp-opendata-credentialed/iiic-irr-crowd/annotations/test_df4_dictionary.md
+citation.bib,612,e5e3f8909ed211ff8a57636b9b6e9203,s3://bdsp-opendata-credentialed/iiic-irr-crowd/citation.bib
+contest_images/manifest.csv,1720710,617c17549a5517ee6e85465eec244744,s3://bdsp-opendata-credentialed/iiic-irr-crowd/contest_images/manifest.csv
+eeg_signals/iiic_contest_eeg.h5,9561630357,72b26844960bb0a96c203781bfc11644-1140,s3://bdsp-opendata-credentialed/iiic-irr-crowd/eeg_signals/iiic_contest_eeg.h5
+eeg_signals/iiic_contest_eeg_schema.md,5390,11c94d47b93430b15ee2ee57155a8e94,s3://bdsp-opendata-credentialed/iiic-irr-crowd/eeg_signals/iiic_contest_eeg_schema.md
+raw_contest_exports/1251-all-reads_ac.csv,133119977,1dfbd8d3ec360717bf1ad7b7aab7b2ff-16,s3://bdsp-opendata-credentialed/iiic-irr-crowd/raw_contest_exports/1251-all-reads_ac.csv
+raw_contest_exports/1251-all-users_deidentified.csv,337841,97eda452ed7152cff709204b83326ff4,s3://bdsp-opendata-credentialed/iiic-irr-crowd/raw_contest_exports/1251-all-users_deidentified.csv
+raw_contest_exports/1251-all-users_demo_info_deidentified.csv,378740,2e83403f54a007990b971918ed38246e,s3://bdsp-opendata-credentialed/iiic-irr-crowd/raw_contest_exports/1251-all-users_demo_info_deidentified.csv
+raw_contest_exports/Results_SeizureLike_Patterns_Dec_12_2022.csv,39241199,2f0e201aa8af40aa2f77f1cfe9c4733f-5,s3://bdsp-opendata-credentialed/iiic-irr-crowd/raw_contest_exports/Results_SeizureLike_Patterns_Dec_12_2022.csv
+raw_contest_exports/eeg-all-users-and-topics_deidentified.csv,889809,4da501ff9f866baca9dad0fb28a6c8e1,s3://bdsp-opendata-credentialed/iiic-irr-crowd/raw_contest_exports/eeg-all-users-and-topics_deidentified.csv
